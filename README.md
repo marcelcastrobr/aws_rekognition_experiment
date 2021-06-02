@@ -20,6 +20,12 @@ export AWS_PROFILE='aws-marcelcastrobr'
 
 
 
+NOTE: The text and most part of the code comes from AWS Examples. 
+
+Ref. https://github.com/awsdocs/aws-doc-sdk-examples/tree/master/python/example_code/rekognition
+
+
+
 ## Purpose
 
 Shows how to use the AWS SDK for Python (Boto3) with Amazon Rekognition to
