@@ -91,7 +91,7 @@ class RekognitionVideo:
         
         return policy_flag
         
-
+ 
     def create_notification_channel(
             self, resource_name, iam_client, iam_resource, sns_resource, sqs_resource):
         """
@@ -296,8 +296,8 @@ class RekognitionVideo:
             self.rekognition_client.start_text_detection,
             self.rekognition_client.get_text_detection,
             lambda response: [
-                RekognitionText(text['TextDetection']) for text in
-                response['TextDetections']])
+                RekognitionText(text['TextDetection'], text['Timestamp']) 
+                for text in response['TextDetections']])
 
     def do_label_detection(self):
         """
@@ -405,7 +405,7 @@ def usage_demo():
     # Use pre-defines bucket and files from folder
     bucket_name = 'marcel-experiments'
     bucket_prefix_videos='rov/'
-    bucket_prefix_json='json_results/'
+    bucket_prefix_json='json/'
     video_file_name='rov/rov_video_trim.mp4'
     print("Uploading the vide to the bucket {}".format(bucket_name))
     s3_resource = boto3.resource('s3') # type: botostubs.S3
@@ -430,7 +430,7 @@ def usage_demo():
             #Save dictionary in file
             #file_json=bucket_prefix_json+f_filename+'.json'
             file_json=f_filename+'.json'
-            with open(file_json, 'w') as fp:
+            with open(bucket_prefix_json+file_json, 'w') as fp:
                 for label in labels:
                     json.dump(label.to_dict(), fp,  indent=4)
             

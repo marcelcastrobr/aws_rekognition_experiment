@@ -262,7 +262,7 @@ class RekognitionModerationLabel:
 
 class RekognitionText:
     """Encapsulates an Amazon Rekognition text element."""
-    def __init__(self, text_data):
+    def __init__(self, text_data, timestamp=None):
         """
         Initializes the text object.
 
@@ -275,6 +275,18 @@ class RekognitionText:
         self.parent_id = text_data.get('ParentId')
         self.confidence = text_data.get('Confidence')
         self.geometry = text_data.get('Geometry')
+        self.timestamp = timestamp
+
+    def convertMilliseconds(self, millis):
+        millis = int(millis)
+        seconds=(millis/1000)%60
+        seconds = int(seconds)
+        minutes=(millis/(1000*60))%60
+        minutes = int(minutes)
+        hours=(millis/(1000*60*60))%24
+        hours = int(hours)
+        time_value =str(hours)+"h:"+str(minutes)+"m:"+str(seconds)+"s"
+        return(time_value)
 
     def to_dict(self):
         """
@@ -291,6 +303,10 @@ class RekognitionText:
             rendering['polygon'] = self.geometry.get('Polygon')
         if self.geometry is not None:
             rendering['boundingbox'] = self.geometry.get('BoundingBox')
+        if self.confidence is not None:
+            rendering['Confidence'] = self.confidence
+        if self.timestamp is not None:
+            rendering['timestamp'] = self.convertMilliseconds(self.timestamp)
         return rendering
 
     def to_dict_compact(self):
@@ -302,4 +318,6 @@ class RekognitionText:
         rendering = {}
         if self.text is not None:
             rendering['text'] = self.text
+        if self.timestamp is not None:
+            rendering['timestamp'] = self.convertMilliseconds(self.timestamp)
         return rendering
