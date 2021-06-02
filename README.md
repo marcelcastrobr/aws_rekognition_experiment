@@ -1,7 +1,24 @@
 # Amazon Rekognition image and video detection example
 
+
+
 ## Marcel´s Notes
+
 export AWS_PROFILE='aws-marcelcastrobr'
+
+
+
+## Current Architecture
+
+![image-20210602153523991](README.assets/image-20210602153523991.png)
+
+
+
+## Future Architecture
+
+![image-20210602153908715](README.assets/image-20210602153908715.png)
+
+
 
 ## Purpose
 
@@ -53,7 +70,7 @@ Run this example at a command prompt with the following command.
 
 ```
 python rekognition_image_detection.py
-``` 
+```
 
 **Face collection**
 
@@ -61,7 +78,7 @@ Run this example at a command prompt with the following command.
 
 ```
 python rekognition_collections.py
-``` 
+```
 
 **Video detection**
 
@@ -69,7 +86,7 @@ Run this example at a command prompt with the following command.
 
 ```
 python rekognition_video_detection.py
-``` 
+```
 
 ### Example structure
 
