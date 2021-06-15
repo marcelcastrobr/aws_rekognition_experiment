@@ -3,6 +3,7 @@
 # Learn more about .gitignore:
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
+aws-cdk/amazon-rekognition-large-scale-processing/
 .vscode/
 
 # Node artifact files
