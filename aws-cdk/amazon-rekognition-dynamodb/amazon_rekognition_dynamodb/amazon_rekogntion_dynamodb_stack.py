@@ -104,6 +104,10 @@ class AmazonRekognitionDynamodbStack(Stack):
         # Allow to lambda:GetFunction in order to get the role_arn from within the function
         detect_faces_lambda.add_to_role_policy(iam.PolicyStatement(actions=['lambda:GetFunction','iam:PassRole'],
                                                                    resources=['*']))
+        
+
+        # Allow role to pubish to the topic
+        topic.grant_publish(detect_faces_lambda)
 
 
         # Allow lambda to read from S3
