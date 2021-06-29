@@ -21,11 +21,11 @@ class AmazonRekognitionDynamodbStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # Create image bucket
-        image_bucket = s3.Bucket(self, 'inbound_image_s3_bucket')
+        video_bucket = s3.Bucket(self, 'inbound_video_s3_bucket')
 
         # Create the image processing queue
-        image_process_queue = sqs.Queue(
-            self, "image_process_queue",
+        video_process_queue = sqs.Queue(
+            self, "video_process_queue",
             visibility_timeout=Duration.seconds(300),
             retention_period=Duration.days(1)
         )
@@ -71,11 +71,11 @@ class AmazonRekognitionDynamodbStack(Stack):
 
 
         # Set the put object notification to the SQS Queue
-        image_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
-                                            dest=s3n.SqsDestination(image_process_queue))
+        video_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
+                                            dest=s3n.SqsDestination(video_process_queue))
         
         # Define the AWS Lambda to call Amazon Rekognition DetectFaces
-        detect_faces_lambda = _lambda.Function(self, 'detect_texts',
+        detect_text_lambda = _lambda.Function(self, 'detect_texts',
                                                function_name='AmazonRekognitionDynamodbStack_detect_texts',
                                                runtime=_lambda.Runtime.PYTHON_3_7,
                                                handler='detect_text.lambda_handler',
@@ -90,28 +90,28 @@ class AmazonRekognitionDynamodbStack(Stack):
                                                reserved_concurrent_executions=50
                                                )
         
-        # Set SQS image_process_queue Queue as event source for detect_faces_lambda
-        detect_faces_lambda.add_event_source(_lambda_events.SqsEventSource(image_process_queue,
+        # Set SQS video_process_queue Queue as event source for detect_text_lambda
+        detect_text_lambda.add_event_source(_lambda_events.SqsEventSource(video_process_queue,
                                                                            batch_size=1))
 
         # Allow response queue messages from lambda
-        response_queue.grant_send_messages(detect_faces_lambda)
+        response_queue.grant_send_messages(detect_text_lambda)
 
         # Allow lambda to call Rekognition by adding a IAM Policy Statement
-        detect_faces_lambda.add_to_role_policy(iam.PolicyStatement(actions=['rekognition:*'],
+        detect_text_lambda.add_to_role_policy(iam.PolicyStatement(actions=['rekognition:*'],
                                                                    resources=['*']))
         
         # Allow to lambda:GetFunction in order to get the role_arn from within the function
-        detect_faces_lambda.add_to_role_policy(iam.PolicyStatement(actions=['lambda:GetFunction','iam:PassRole'],
+        detect_text_lambda.add_to_role_policy(iam.PolicyStatement(actions=['lambda:GetFunction','iam:PassRole'],
                                                                    resources=['*']))
         
 
         # Allow role to pubish to the topic
-        topic.grant_publish(detect_faces_lambda)
+        topic.grant_publish(detect_text_lambda)
 
 
         # Allow lambda to read from S3
-        image_bucket.grant_read(detect_faces_lambda)
+        video_bucket.grant_read(detect_text_lambda)
 
 
         # Define the DynamoDB Table
@@ -127,9 +127,12 @@ class AmazonRekognitionDynamodbStack(Stack):
                                                runtime=_lambda.Runtime.PYTHON_3_7,
                                                function_name='AmazonRekognitionDynamodbStack_write_results_text',
                                                handler='write_results_text.lambda_handler',
+                                               role=my_role,
                                                code=_lambda.Code.from_asset('./lambda'),
                                                timeout=Duration.seconds(30),
-                                               environment={'TABLE_NAME': results_table.table_name}
+                                               environment={
+                                                   'SQS_RESPONSE_QUEUE': response_queue.queue_name,
+                                                   'TABLE_NAME': results_table.table_name}
                                                )
 
         # Set SQS response_queue Queue as event source for write_results_lambda results_table
@@ -144,7 +147,7 @@ class AmazonRekognitionDynamodbStack(Stack):
 
         # Output to Amazon S3 Image Bucket
         cdk.CfnOutput(self, 'cdk_output',
-                       value=image_bucket.bucket_name,
+                       value=video_bucket.bucket_name,
                        description='Input Amazon S3 Image Bucket')
 
 

@@ -1,31 +1,29 @@
 """
-Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-SPDX-License-Identifier: MIT-0
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this
-software and associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use, copy, modify,
-merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Author: Marcel Cavalcanti de Castro
+June 29th 2021
 """
 
 import json
 import boto3
 from botocore.exceptions import ClientError
 import os
+import logging
 from decimal import Decimal
+from rekognition_objects import (RekognitionText)
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Environ Variables
 TABLE_NAME = os.environ['TABLE_NAME']
+SQS_RESPONSE_QUEUE = os.environ['SQS_RESPONSE_QUEUE']
 # DynamoDB Resource
 dynamodb_resource = boto3.resource('dynamodb', region_name='us-east-1')
+sqs_resource = boto3.resource('sqs')
+rekognition_client = boto3.client('rekognition', region_name='us-east-1')
+
+
 
 
 def put_item_dynamodb(item):
@@ -43,31 +41,62 @@ def put_item_dynamodb(item):
     except ClientError as error:
         return error.response
 
+def poll_notification(message_body):
+    # Get the queue
+    #queue = sqs_resource.get_queue_by_name(QueueName=SQS_RESPONSE_QUEUE)
+    #messages = queue.receive_messages(
+    #            MaxNumberOfMessages=1, WaitTimeSeconds=5)
+    #logger.info("Polled queue for messages, got %s.", len(messages))
+    #logger.info("Message: {}".format(messages))
 
-def parse_message_emotions(message):
+    logger.info("message_body: {}".format(message_body))
+    message = json.loads(message_body['Message'])
+    job_id = message['JobId']
+    status = message['Status']
+    job_tag = message['JobTag']
+    logger.info("job_tag: {}, job_id: {}, and status is {}".format(
+        job_tag,
+        job_id,
+        status
+    ))
+    return job_tag, job_id, status
+
+def _get_rekognition_job_results(job_id, get_results_func, result_extractor):
+        """
+        Gets the results of a completed job by calling the specified results function.
+        Results are extracted into objects by using the specified extractor function.
+
+        :param job_id: The ID of the job.
+        :param get_results_func: The specific Boto3 Rekognition get job results
+                                 function to call, such as get_text_detection.
+        :param result_extractor: A function that takes the results of the job
+                                 and wraps the result data in object form.
+        :return: The list of result objects.
+        """
+        try:
+            response = get_results_func(JobId=job_id)
+            logger.info("Job {} has status: {} and next token {}".format(
+                job_id, 
+                response['JobStatus'], 
+                response.get('NextToken', None)
+                ))
+            results = result_extractor(response)
+            logger.info("Found %s items in %s.", len(results), "test")
+        except ClientError:
+            logger.exception("Couldn't get items for %s.", job_id)
+            raise
+        else:
+            return results
+
+def parse_message_texts(message):
     """
-    Parse the original SQS message to a DynamoDB compatible dict
-    :param message: SQS Message Dict
+    Parse the original Rekognition message to a DynamoDB compatible dict
+    :param message: Rekognition Dict
     :return: Parsed dict to insert into DynamoDB Table
     """
-    face_details = message['FaceDetails'][0]
-    response_metadata = message['ResponseMetadata']
-    # photo_id = str(uuid1()).split('-')[0]
-    photo_id = message['s3_object_key']
-
-    item = {'id': photo_id,
-            'FaceDetails': face_details,
-            'ResponseMetadata': response_metadata}
-
-    # for emotion in face_emotions:
-    #    emotion_type = emotion['Type']
-    #    emotion_type = emotion_type.lower()
-    #    emotion_confidence = emotion['Confidence']
-    #    item[emotion_type] = Decimal(str(emotion_confidence))
-    #    print(f'{emotion_type} = {emotion_confidence}')
 
     # Parse the Float values in the message to Decimals
-    ddb_item = json.loads(json.dumps(item), parse_float=Decimal)
+    ddb_item = json.loads(json.dumps(message), parse_float=Decimal)
 
     return ddb_item
 
@@ -80,10 +109,34 @@ def lambda_handler(event, context):
     :param context: Context dict
     :return: DynamoDB Response PutItem dict
     """
-    print(event)
-    print(event['Records'][0]['body'][0])
     message_body = json.loads(event['Records'][0]['body'])
-    print(message_body)
+    logger.info("message_body: {}".format(message_body))
 
-    item = parse_message_emotions(message_body)
-    return put_item_dynamodb(item)
+    job_tag, job_id, status = poll_notification(message_body)
+    if status == 'SUCCEEDED':
+        #logger.info("job_id is: {}, and status is {}".format(job_id,status))
+        texts = _get_rekognition_job_results(job_id,
+            rekognition_client.get_text_detection, 
+            lambda response: [
+                RekognitionText(text['TextDetection'], text['Timestamp']) 
+                for text in response['TextDetections']]
+                )
+        logger.info(f"Detected {len(texts)} texts, here are the first twenty:")
+        text_message = {}
+        counter = 0
+        for text in texts:
+            print(text.to_dict_compact())
+            counter=counter+1
+            line_message = text.to_dict_compact()
+            text_message[counter] = line_message
+        text_message.update({'id': job_tag })
+        item = parse_message_texts(text_message)
+        put_item_dynamodb(item)
+    else:
+        logger.info("Failure: job_id is: {}, and status is {}".format(job_id,status))
+
+    #item = parse_message_emotions(message_body)
+    #return put_item_dynamodb(item)
+
+    return None
+

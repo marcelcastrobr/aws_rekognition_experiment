@@ -84,14 +84,13 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key, attributes='ALL'):
             logger.info("SQS_RESPONSE_QUEUE: {}".format(SQS_RESPONSE_QUEUE))
             logger.info("SNS_TOPIC_ARN: {}".format(SNS_TOPIC_ARN))
             logger.info("AWS_LAMBDA_FUNCTION_NAME: {}".format(AWS_LAMBDA_FUNCTION_NAME))
+
             response = lambda_client.get_function(FunctionName=AWS_LAMBDA_FUNCTION_NAME)
             lambda_config= response['Configuration']
             lambda_config_role = lambda_config['Role']
             logger.info("LAMBDA_ROLE: {}".format(lambda_config_role))
 
-            # print(f'Detecting {s3_bucket_name}/{s3_object_key}')
-            # print("SNS_TOPIC_ARN={}".format(topic.arn))
-
+            
             # Calling start_text_detection
             job_id = rekognition_client.start_text_detection(
                 Video={
@@ -104,37 +103,16 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key, attributes='ALL'):
                     'SNSTopicArn': SNS_TOPIC_ARN,
                     'RoleArn': lambda_config_role
                     }
+                ,JobTag=s3_object_key
+                ,Filters={
+                    'WordFilter': {
+                        'MinConfidence': 90
+                    }
+                }
             )
 
-            print(job_id)
+            logger.info("Called start_text_detection, got job_id: {}".format(job_id))
 
-            '''
-            status = poll_notification(job_id)
-            
-            if status == 'SUCCEEDED':
-                # results = self._get_rekognition_job_results(job_id, get_results_func, result_extractor)
-                response = rekognition_client.get_text_detection(JobId=job_id)
-                logger.info("Job %s has status: %s.", job_id, response['JobStatus'])
-                retry_rekgonition = False
-            else:
-                results = []
-
-            print(results)
-            '''
-
-
-            '''
-            # Check if the call to Rekognition returned any value
-            if image_response:
-                # Add the object key in the message to send to Write Queue
-                image_response['s3_object_key'] = s3_object_key
-
-                # Send Mesage to SQS Queue
-                send_response_sqs(image_response)
-                retry_rekgonition = False
-
-            return image_response
-            '''
             return job_id
 
         except ClientError as error:
@@ -192,21 +170,17 @@ def lambda_handler(event, context):
     :return: Amazon Rekognition DetectFaces Response Dict
     """
 
-    print("Inside lambda_handler")
-    print("event:")
-    print(event)
+    logger.info("event: {}".format(event))
 
-    print("event['Records'][0]['body'][0]:")
-    print(event['Records'][0]['body'][0])
+    logger.info("event['Records'][0]['body'][0]: {}".format(event['Records'][0]['body'][0]))
     message_body = json.loads(event['Records'][0]['body'])
 
-    print("message_body:")
-    print(message_body)
+    logger.info("message_body: {}".format(message_body))
 
     s3_bucket_name = message_body['Records'][0]['s3']['bucket']['name']
     s3_object_key = message_body['Records'][0]['s3']['object']['key']
 
-    print(f'Bucket = {s3_bucket_name}')
-    print(f'Object Key = {s3_object_key}')
+    logger.info("Bucket = {}".format(s3_bucket_name))
+    logger.info("Object Key = {}".format(s3_object_key))
 
     return detect_texts_rekognition(s3_bucket_name, s3_object_key)
