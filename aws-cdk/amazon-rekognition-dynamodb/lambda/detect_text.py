@@ -10,7 +10,6 @@ from botocore.exceptions import ClientError
 import os
 from time import sleep
 from random import randint
-# from rekognition_objects import (RekognitionText)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -25,46 +24,12 @@ MAX_RETRIES = 3
 
 # Boto 3 Resources / Clients
 logger.info("BOTO_VERSION: {}".format(boto3.__version__))
-iam_client = boto3.client('iam')
 lambda_client = boto3.client('lambda')
 rekognition_client = boto3.client('rekognition', region_name='us-east-1')
-sqs_resource = boto3.resource('sqs')
-iam_resource = boto3.resource('iam')
-sns_resource = boto3.resource('sns')
 
 
 
-def poll_notification(job_id):
-    """
-        Polls the notification queue for messages that indicate a job has completed.
-
-        :param job_id: The ID of the job to wait for.
-        :return: The completion status of the job.
-        """
-    # Get the queue
-    queue = sqs_resource.get_queue_by_name(QueueName=SQS_RESPONSE_QUEUE)
-
-    status = None
-    job_done = False
-    while not job_done:
-        messages = queue.receive_messages(
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=5)
-        logger.info("Polled queue for messages, got %s.", len(messages))
-        if messages:
-            body = json.loads(messages[0].body)
-            message = json.loads(bod['Message'])
-            if job_id != message['JobId']:
-                raise RuntimeError
-            status = message['Status']
-            logger.info("Got message %s with status %s.",
-                        message['JobId'], status)
-            messages[0].delete()
-            job_done = True
-    return status
-
-
-def detect_texts_rekognition(s3_bucket_name, s3_object_key, attributes='ALL'):
+def detect_texts_rekognition(s3_bucket_name, s3_object_key):
     """
     Detect Rekognition text 
     :param s3_bucket_name: str that contains the bucket name
@@ -106,7 +71,7 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key, attributes='ALL'):
                 ,JobTag=s3_object_key
                 ,Filters={
                     'WordFilter': {
-                        'MinConfidence': 90
+                        'MinConfidence': 60
                     }
                 }
             )
@@ -138,27 +103,6 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key, attributes='ALL'):
                 print(error.response)
                 retry_rekgonition = False
                 return error.response
-
-
-def send_response_sqs(message_body):
-    """
-    Sends the response from Amazon Rekognition DetectFaces to a SQS queue
-    :param message_body: Message to send to SQS queue dict
-    :return:
-    """
-    # Get the queue
-    queue = sqs_resource.get_queue_by_name(QueueName=SQS_RESPONSE_QUEUE)
-
-    # Send a new message
-    try:
-        response = queue.send_message(MessageBody=json.dumps(message_body))
-        message_id = response.get('MessageId')
-
-        print(f'Sent Message {message_id}')
-
-    except ClientError as error:
-        print(error.response)
-        return error.response
 
 
 def lambda_handler(event, context):

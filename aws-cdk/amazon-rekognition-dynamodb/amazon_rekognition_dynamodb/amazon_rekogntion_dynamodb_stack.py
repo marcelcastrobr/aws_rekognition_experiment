@@ -21,7 +21,8 @@ class AmazonRekognitionDynamodbStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # Create image bucket
-        video_bucket = s3.Bucket(self, 'inbound_video_s3_bucket')
+        video_bucket = s3.Bucket(self, 'inbound_video_s3_bucket',
+        bucket_name='amazonrekogntiondynamodb-inboundimages')
 
         # Create the image processing queue
         video_process_queue = sqs.Queue(

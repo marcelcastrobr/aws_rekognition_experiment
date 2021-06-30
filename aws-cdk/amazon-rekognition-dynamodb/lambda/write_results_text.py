@@ -61,12 +61,13 @@ def poll_notification(message_body):
     ))
     return job_tag, job_id, status
 
-def _get_rekognition_job_results(job_id, get_results_func, result_extractor):
+def _get_rekognition_job_results(job_id, get_results_func, result_extractor, next_token=None):
         """
         Gets the results of a completed job by calling the specified results function.
         Results are extracted into objects by using the specified extractor function.
 
         :param job_id: The ID of the job.
+        :param next_token: Pagination token to retrieve the next set of text.
         :param get_results_func: The specific Boto3 Rekognition get job results
                                  function to call, such as get_text_detection.
         :param result_extractor: A function that takes the results of the job
@@ -74,11 +75,15 @@ def _get_rekognition_job_results(job_id, get_results_func, result_extractor):
         :return: The list of result objects.
         """
         try:
-            response = get_results_func(JobId=job_id)
+            if next_token == None:
+                response = get_results_func(JobId=job_id)
+            else:
+                response = get_results_func(JobId=job_id, NextToken=next_token)
+            received_next_token = response.get('NextToken', None)
             logger.info("Job {} has status: {} and next token {}".format(
                 job_id, 
                 response['JobStatus'], 
-                response.get('NextToken', None)
+                received_next_token
                 ))
             results = result_extractor(response)
             logger.info("Found %s items in %s.", len(results), "test")
@@ -86,7 +91,7 @@ def _get_rekognition_job_results(job_id, get_results_func, result_extractor):
             logger.exception("Couldn't get items for %s.", job_id)
             raise
         else:
-            return results
+            return results, received_next_token
 
 def parse_message_texts(message):
     """
@@ -111,24 +116,29 @@ def lambda_handler(event, context):
     """
     message_body = json.loads(event['Records'][0]['body'])
     logger.info("message_body: {}".format(message_body))
-
     job_tag, job_id, status = poll_notification(message_body)
+
+    text_message = {}
+    text_line_counter = 0
+    token_number = 0
+    next_token = None
     if status == 'SUCCEEDED':
-        #logger.info("job_id is: {}, and status is {}".format(job_id,status))
-        texts = _get_rekognition_job_results(job_id,
-            rekognition_client.get_text_detection, 
-            lambda response: [
-                RekognitionText(text['TextDetection'], text['Timestamp']) 
-                for text in response['TextDetections']]
-                )
-        logger.info(f"Detected {len(texts)} texts, here are the first twenty:")
-        text_message = {}
-        counter = 0
-        for text in texts:
-            print(text.to_dict_compact())
-            counter=counter+1
-            line_message = text.to_dict_compact()
-            text_message[counter] = line_message
+        while (next_token != None)  or (token_number == 0):
+            token_number=token_number+1
+            logger.info("{} job_id: {}, status: {}, next_token: {}".format(token_number, job_id,status,next_token))
+            texts, next_token = _get_rekognition_job_results(job_id,
+                rekognition_client.get_text_detection, 
+                lambda response: [
+                    RekognitionText(text['TextDetection'], text['Timestamp']) 
+                    for text in response['TextDetections']]
+                ,next_token)        
+            logger.info(f"Detected {len(texts)} texts, here are the first twenty:")
+            for text in texts:
+                #print(text.to_dict_compact())
+                text_line_counter=text_line_counter+1
+                line_message = text.to_dict_compact()
+                text_message[text_line_counter] = line_message
+            
         text_message.update({'id': job_tag })
         item = parse_message_texts(text_message)
         put_item_dynamodb(item)
