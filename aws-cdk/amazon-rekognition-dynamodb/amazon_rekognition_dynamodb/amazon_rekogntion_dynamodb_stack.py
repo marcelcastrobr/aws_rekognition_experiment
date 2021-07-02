@@ -22,7 +22,13 @@ class AmazonRekognitionDynamodbStack(Stack):
 
         # Create image bucket
         video_bucket = s3.Bucket(self, 'inbound_video_s3_bucket',
-        bucket_name='amazonrekogntiondynamodb-inboundimages')
+        bucket_name='amazonrekogntiondynamodb-inboundimages',
+        block_public_access=s3.BlockPublicAccess(
+            block_public_acls=True,
+            block_public_policy=True,
+            ignore_public_acls=True,
+            restrict_public_buckets=True
+        ))
 
         # Create the image processing queue
         video_process_queue = sqs.Queue(
@@ -87,6 +93,7 @@ class AmazonRekognitionDynamodbStack(Stack):
                                                    'SQS_RESPONSE_QUEUE': response_queue.queue_name,
                                                    'SNS_TOPIC_ARN': topic.topic_arn,
                                                    'FUNCTION_NAME': 'AmazonRekognitionDynamodbStack_detect_texts',
+                                                   'REKOGNITION_CONFIDENCE': '95'
                                                    },
                                                reserved_concurrent_executions=50
                                                )
@@ -114,6 +121,9 @@ class AmazonRekognitionDynamodbStack(Stack):
         # Allow lambda to read from S3
         video_bucket.grant_read(detect_text_lambda)
 
+        # Allow Rekognition to read from S3
+        video_bucket.grant_read(iam.ServicePrincipal("rekognition.amazonaws.com"))
+
 
         # Define the DynamoDB Table
         results_table = dynamodb.Table(self, 'detect_text_results',
@@ -130,7 +140,7 @@ class AmazonRekognitionDynamodbStack(Stack):
                                                handler='write_results_text.lambda_handler',
                                                role=my_role,
                                                code=_lambda.Code.from_asset('./lambda'),
-                                               timeout=Duration.seconds(30),
+                                               timeout=Duration.seconds(300),
                                                environment={
                                                    'SQS_RESPONSE_QUEUE': response_queue.queue_name,
                                                    'TABLE_NAME': results_table.table_name}

@@ -6,8 +6,9 @@ June 15th 2021
 import json
 import logging
 import boto3
-from botocore.exceptions import ClientError
 import os
+import re
+from botocore.exceptions import ClientError
 from time import sleep
 from random import randint
 
@@ -18,6 +19,7 @@ logger.setLevel(logging.DEBUG)
 SQS_RESPONSE_QUEUE = os.environ['SQS_RESPONSE_QUEUE']
 SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
 AWS_LAMBDA_FUNCTION_NAME = os.environ['FUNCTION_NAME']
+REKOGNITION_CONFIDENCE = os.environ['REKOGNITION_CONFIDENCE']
 
 
 MAX_RETRIES = 3
@@ -39,9 +41,6 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key):
     retry_rekgonition = True
     num_retries = 0
 
-    resource_name = 'doc-video-rekognition-'+s3_object_key
-    #create_notification_channel(resource_name)
-
     while retry_rekgonition and num_retries <= MAX_RETRIES:
 
         try:
@@ -54,6 +53,11 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key):
             lambda_config= response['Configuration']
             lambda_config_role = lambda_config['Role']
             logger.info("LAMBDA_ROLE: {}".format(lambda_config_role))
+
+            #Make sure the job_tag string satisfy regular expression pattern expected
+            # Ref. https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html
+            job_tag = re.sub('[^a-zA-Z0-9_.\\-:]+', '', str(s3_object_key))
+            logger.info("JobTag: {}".format(job_tag))
 
             
             # Calling start_text_detection
@@ -68,17 +72,17 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key):
                     'SNSTopicArn': SNS_TOPIC_ARN,
                     'RoleArn': lambda_config_role
                     }
-                ,JobTag=s3_object_key
+                ,JobTag=job_tag
                 ,Filters={
                     'WordFilter': {
-                        'MinConfidence': 60
+                        'MinConfidence': float(REKOGNITION_CONFIDENCE)
                     }
                 }
             )
 
-            logger.info("Called start_text_detection, got job_id: {}".format(job_id))
-
+            logger.info("Called start_text_detection for {}, got job_id: {}".format(job_tag, job_id))
             return job_id
+        
 
         except ClientError as error:
 

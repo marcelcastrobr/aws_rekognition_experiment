@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 import logging
+import sys
 from decimal import Decimal
 from rekognition_objects import (RekognitionText)
 
@@ -137,16 +138,20 @@ def lambda_handler(event, context):
                 #print(text.to_dict_compact())
                 text_line_counter=text_line_counter+1
                 line_message = text.to_dict_compact()
-                text_message[text_line_counter] = line_message
+                #text_message[text_line_counter] = line_message
+                text_message[line_message['text']] = line_message
             
         text_message.update({'id': job_tag })
-        item = parse_message_texts(text_message)
-        put_item_dynamodb(item)
+        item_size = sys.getsizeof(text_message)
+        #logger.info("text_message size in Bytes is {}".format(item_size))
+        if item_size > 400000:
+            logger.error("Item is bigger than DynamoDB can support {} / {}".format(item_size,400000))
+        else:
+            logger.info("Item size in Bytes to be inserted in DynamoDB {}".format(item_size))
+            item = parse_message_texts(text_message)
+            put_item_dynamodb(item)
     else:
         logger.info("Failure: job_id is: {}, and status is {}".format(job_id,status))
-
-    #item = parse_message_emotions(message_body)
-    #return put_item_dynamodb(item)
 
     return None
 
