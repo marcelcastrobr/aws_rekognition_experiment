@@ -56,3 +56,27 @@ command.
  * `cdk docs`        open CDK documentation
 
 Enjoy!
+
+
+
+# Command to check DynamoDB information:
+
+
+
+​	expression-attributes.json:
+
+```
+{
+    ":v1": {"S": "CAM-HD_2020-11-29_023614_1.mp4"}
+}
+
+```
+
+
+
+```
+aws dynamodb query \
+    --table-name detect_text_results \
+    --key-condition-expression "id = :v1" --expression-attribute-values file://expression-attributes.json
+```
+

@@ -18,7 +18,6 @@ logger.setLevel(logging.DEBUG)
 # Environ Variables
 SQS_RESPONSE_QUEUE = os.environ['SQS_RESPONSE_QUEUE']
 SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
-AWS_LAMBDA_FUNCTION_NAME = os.environ['FUNCTION_NAME']
 REKOGNITION_CONFIDENCE = os.environ['REKOGNITION_CONFIDENCE']
 
 
@@ -31,7 +30,7 @@ rekognition_client = boto3.client('rekognition', region_name='us-east-1')
 
 
 
-def detect_texts_rekognition(s3_bucket_name, s3_object_key):
+def detect_texts_rekognition(s3_bucket_name, s3_object_key, my_function_name):
     """
     Detect Rekognition text 
     :param s3_bucket_name: str that contains the bucket name
@@ -47,9 +46,9 @@ def detect_texts_rekognition(s3_bucket_name, s3_object_key):
             logger.info("Detecting {}/{}".format(s3_bucket_name, s3_object_key))
             logger.info("SQS_RESPONSE_QUEUE: {}".format(SQS_RESPONSE_QUEUE))
             logger.info("SNS_TOPIC_ARN: {}".format(SNS_TOPIC_ARN))
-            logger.info("AWS_LAMBDA_FUNCTION_NAME: {}".format(AWS_LAMBDA_FUNCTION_NAME))
+            logger.info("AWS_LAMBDA_FUNCTION_NAME: {}".format(my_function_name))
 
-            response = lambda_client.get_function(FunctionName=AWS_LAMBDA_FUNCTION_NAME)
+            response = lambda_client.get_function(FunctionName=my_function_name)
             lambda_config= response['Configuration']
             lambda_config_role = lambda_config['Role']
             logger.info("LAMBDA_ROLE: {}".format(lambda_config_role))
@@ -128,7 +127,8 @@ def lambda_handler(event, context):
     s3_bucket_name = message_body['Records'][0]['s3']['bucket']['name']
     s3_object_key = message_body['Records'][0]['s3']['object']['key']
 
+    my_function_name = context.function_name
     logger.info("Bucket = {}".format(s3_bucket_name))
     logger.info("Object Key = {}".format(s3_object_key))
 
-    return detect_texts_rekognition(s3_bucket_name, s3_object_key)
+    return detect_texts_rekognition(s3_bucket_name, s3_object_key, my_function_name)

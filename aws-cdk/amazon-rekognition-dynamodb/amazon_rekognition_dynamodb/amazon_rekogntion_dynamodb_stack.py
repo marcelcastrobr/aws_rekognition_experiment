@@ -22,7 +22,7 @@ class AmazonRekognitionDynamodbStack(Stack):
 
         # Create image bucket
         video_bucket = s3.Bucket(self, 'inbound_video_s3_bucket',
-        bucket_name='amazonrekogntiondynamodb-inboundimages',
+        #bucket_name='amazonrekogntiondynamodb-inboundimages',
         block_public_access=s3.BlockPublicAccess(
             block_public_acls=True,
             block_public_policy=True,
@@ -83,7 +83,7 @@ class AmazonRekognitionDynamodbStack(Stack):
         
         # Define the AWS Lambda to call Amazon Rekognition DetectFaces
         detect_text_lambda = _lambda.Function(self, 'detect_texts',
-                                               function_name='AmazonRekognitionDynamodbStack_detect_texts',
+                                               #function_name='AmazonRekognitionDynamodbStack_detect_texts',
                                                runtime=_lambda.Runtime.PYTHON_3_7,
                                                handler='detect_text.lambda_handler',
                                                role=my_role,
@@ -92,7 +92,6 @@ class AmazonRekognitionDynamodbStack(Stack):
                                                environment={
                                                    'SQS_RESPONSE_QUEUE': response_queue.queue_name,
                                                    'SNS_TOPIC_ARN': topic.topic_arn,
-                                                   'FUNCTION_NAME': 'AmazonRekognitionDynamodbStack_detect_texts',
                                                    'REKOGNITION_CONFIDENCE': '95'
                                                    },
                                                reserved_concurrent_executions=50
@@ -127,7 +126,7 @@ class AmazonRekognitionDynamodbStack(Stack):
 
         # Define the DynamoDB Table
         results_table = dynamodb.Table(self, 'detect_text_results',
-                                       table_name='detect_text_results',
+                                       #table_name='detect_text_results',
                                        partition_key=dynamodb.Attribute(name='id', type=dynamodb.AttributeType.STRING),
                                        read_capacity=200,
                                        write_capacity=200
@@ -136,7 +135,7 @@ class AmazonRekognitionDynamodbStack(Stack):
         # Define the AWS Lambda to write results into DyanamoDB results_table
         write_results_lambda = _lambda.Function(self, 'write_results_text',
                                                runtime=_lambda.Runtime.PYTHON_3_7,
-                                               function_name='AmazonRekognitionDynamodbStack_write_results_text',
+                                               #function_name='AmazonRekognitionDynamodbStack_write_results_text',
                                                handler='write_results_text.lambda_handler',
                                                role=my_role,
                                                code=_lambda.Code.from_asset('./lambda'),
@@ -157,10 +156,20 @@ class AmazonRekognitionDynamodbStack(Stack):
         response_queue.grant_consume_messages(write_results_lambda)
 
         # Output to Amazon S3 Image Bucket
-        cdk.CfnOutput(self, 'cdk_output',
+        cdk.CfnOutput(self, 'cdk_output_bucket',
                        value=video_bucket.bucket_name,
                        description='Input Amazon S3 Image Bucket')
-
+                # Output to DynamoDB table name
+        cdk.CfnOutput(self, 'cdk_output_dynamoDB',
+                       value=results_table.table_name,
+                       description='DynamoDB table name')
+        #Lambda Function names:
+        cdk.CfnOutput(self, 'cdk_output_Lambda_1',
+                       value=detect_text_lambda.function_name,
+                       description='Detect text lambda name')
+        cdk.CfnOutput(self, 'cdk_output_Lambda_2',
+                       value=write_results_lambda.function_name,
+                       description='Write result lambda name')
 
 
 
