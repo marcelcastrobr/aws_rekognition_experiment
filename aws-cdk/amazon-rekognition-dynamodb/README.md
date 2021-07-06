@@ -1,16 +1,39 @@
+# Amazon Rekognition:  text detection using AWS CDK for Python 
 
-# Welcome to your CDK Python project!
 
-This is a blank project for Python development with CDK.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## Purpose:
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+Show how to use AWS CDK for Python with Amazon Rekognition to recognise text in video images.
+
+- Detect text in a set of videos on a given S3 bucket.
+
+- Create SNS notification tight to SQS queue to determine when a text detection job of a given video has been competed
+
+- Record texts extracted from the video in a dynamoDB table
+
+  
+
+## Architecture:
+
+![image-20210706101151686](README.assets/image-20210706101151686.png)
+
+## Running the code
+
+There is one demonstration in this code:
+
+* Detecting text from a video
+
+This CDK code create two stacks:
+
+- rov-rekogntion-prod: production stack
+- Rov-rekogntion-dev: development stack
+
+
+
+### Deploying the CDK stack to AWS
+
+Before deploying the stacks it is necessary to create and activate the python virtual environment through the following commands:
 
 To manually create a virtualenv on MacOS and Linux:
 
@@ -25,12 +48,6 @@ step to activate your virtualenv.
 $ source .venv/bin/activate
 ```
 
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .venv\Scripts\activate.bat
-```
-
 Once the virtualenv is activated, you can install the required dependencies.
 
 ```
@@ -43,40 +60,71 @@ At this point you can now synthesize the CloudFormation template for this code.
 $ cdk synth
 ```
 
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
+Deploy your stack by using:
 
-## Useful commands
+```
+$ cdk deploy --app 'cdk.out/' rov-rekogntion-dev
+```
 
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+After the experimentation is done, you can destroy the stack by running:
 
-Enjoy!
+```
+$ cdk destroy --app 'cdk.out/' rov-rekogntion-dev
+```
 
 
 
-# Command to check DynamoDB information:
+### Check detected text on DynamoDB
 
+All text detected via Rekognition API is loaded to DynamoDB table. AWS CLI is used to query dynamoDB table.
 
-
-​	expression-attributes.json:
+File expression-attributes.json:
 
 ```
 {
-    ":v1": {"S": "CAM-HD_2020-11-29_023614_1.mp4"}
+    ":v1": {"S": "CAM-HD_2020-11-29_023614_1.mp4"},
+    ":v2": {"S": "CAM-"}
 }
 
 ```
 
+Query examples:
 
-
-```
+```bash
+# query items in table and returns the occurence of word Gemini02 on id "CAM-HD_2020-11-29_023614_1.mp4".
 aws dynamodb query \
     --table-name detect_text_results \
-    --key-condition-expression "id = :v1" --expression-attribute-values file://expression-attributes.json
+    --projection-expression "Gemini02" \
+    --key-condition-expression "id = :v1" \
+    --expression-attribute-values file://expression-attributes.json\
+    --no-scan-index-forward \
+    --return-consumed-capacity TOTAL
+#OR
+aws dynamodb query \
+    --table-name detect_text_results \
+    --projection-expression "Gemini02" \
+    --key-condition-expression "id = :v1" \
+    --expression-attribute-values '{":v1": {"S": "CAM-HD_2020-11-29_023614_1.mp4"}}'\
+    --no-scan-index-forward \
+    --return-consumed-capacity TOTAL
+
+    
+# retrieves a count of items matching the query, but does not retrieve any of the items themselves.
+aws dynamodb query \
+    --table-name detect_text_results \
+    --select COUNT \
+    --key-condition-expression "id = :v1" \
+    --expression-attribute-values file://expression-attributes.json
+
 ```
+
+The above queries are derived from [here](https://docs.aws.amazon.com/cli/latest/reference/dynamodb/query.html).
+
+
+
+## Additional information
+
+- [AWS CDK Python Reference](https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.html)
+- [Boto3 AWS SDK for Rekognition](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rekognition.html#Rekognition.Client.start_text_detection)
+- [Amazon Rekognition documentation](https://docs.aws.amazon.com/rekognition)
 

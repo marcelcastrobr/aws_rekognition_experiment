@@ -438,47 +438,6 @@ def usage_demo():
             for label in labels[:20]:
                 pprint(label.to_dict_compact())
             input("Press Enter when you're ready to continue.")
-            
-            '''
-            print("Detecting labels in the video.")
-            labels = video.do_label_detection()
-            print(f"Detected {len(labels)} labels, here are the first twenty:")
-            for label in labels[:20]:
-                pprint(label.to_dict())
-            input("Press Enter when you're ready to continue.")
-            
-            print("Detecting faces in the video.")
-            faces = video.do_face_detection()
-            print(f"Detected {len(faces)} faces, here are the first ten:")
-            for face in faces[:10]:
-                pprint(face.to_dict())
-            input("Press Enter when you're ready to continue.")
-
-            print("Detecting celebrities in the video.")
-            celebrities = video.do_celebrity_recognition()
-            print(f"Found {len(celebrities)} celebrity detection events. Here's the first "
-                f"appearance of each celebrity:")
-            celeb_names = set()
-            for celeb in celebrities:
-                if celeb.name not in celeb_names:
-                    celeb_names.add(celeb.name)
-                    pprint(celeb.to_dict())
-            input("Press Enter when you're ready to continue.")
-
-            print("Tracking people in the video. This takes a little longer. Be patient!")
-            persons = video.do_person_tracking()
-            print(f"Detected {len(persons)} person tracking items, here are the first five "
-                f"for each person:")
-            by_index = {}
-            for person in persons:
-                if person.index not in by_index:
-                    by_index[person.index] = []
-                by_index[person.index].append(person)
-            for items in by_index.values():
-                for item in items[:5]:
-                    pprint(item.to_dict())
-            input("Press Enter when you're ready to continue.")
-            '''
 
             print("Deleting resources created for the demo.")
             video.delete_notification_channel()
