@@ -9,6 +9,7 @@ import json
 
 # Environment variables
 TABLE_NAME = 'Images'
+REKOGNITION_CONFIDENCE='75'
 
 
 
@@ -26,7 +27,7 @@ def create_new_table(dynamodb=None):
                 'KeyType': 'HASH'  # Partition key
             },
             {
-                'AttributeName': 'Labels',
+                'AttributeName': 'Label_Name',
                 'KeyType': 'RANGE'  # Sort key
             }
         ],
@@ -36,7 +37,7 @@ def create_new_table(dynamodb=None):
                 'AttributeType': 'S'
             },
             {
-                'AttributeName': 'Labels',
+                'AttributeName': 'Label_Name',
                 'AttributeType': 'S'
             },
         ],
@@ -95,22 +96,36 @@ def detect_labels(bucket_name, file_name):
                             #Features=["GENERAL_LABELS", "IMAGE_PROPERTIES"],
                             #Settings={"GeneralLabels": {"LabelInclusionFilters":["Person"]},
                             # "ImageProperties": {"MaxDominantColors":10}}
-                            )
+                            ,MinConfidence=int(REKOGNITION_CONFIDENCE))
 
     print('Detected labels for ' + file_name)
+    
     image_name = file_name
-    image_labels = response['Labels']
+    #image_labels = response['Labels']
 
-    image_json_string = json.dumps(image_labels, indent=4)
-    labels=set(find_values("Name", image_json_string))
-    print("Labels found: " + str(labels))
-    labels_dict = {}
-    print("Saving label data to database")
-    labels_dict["Image"] = str(image_name)
-    labels_dict["Labels"] = str(labels)
-    print(labels_dict)
-    load_data(labels_dict)
-    print("Success!")
+    #image_json_string = json.dumps(image_labels, indent=4)
+    #labels=set(find_values("Name", image_json_string))
+    #print("Labels found: " + str(labels))
+    #labels_dict = {}
+    #print("Saving label data to database")
+    #labels_dict["Image"] = str(image_name)
+    #labels_dict["Labels"] = str(labels)
+    #print(labels_dict)
+    #load_data(labels_dict)
+    #print("Success!")
+
+
+    for label in response['Labels']:
+        for category in label['Categories']:
+            labels_dict = {}
+            labels_dict["Image"] = str(image_name)
+            labels_dict["Label_Name"] = str(label['Name'])
+            labels_dict["Label_Confidence"] = int(label['Confidence'])
+            labels_dict["Label_Category"] = str(category['Name'])
+            #print(labels_dict)
+            load_data(labels_dict)
+
+
 
     '''
     for label in response['Labels']:
@@ -151,7 +166,8 @@ def detect_labels(bucket_name, file_name):
         print("Quality:")
         print(response["ImageProperties"]["Quality"])
         print()
-    '''
+        '''
+    
     return len(response['Labels'])
 
 

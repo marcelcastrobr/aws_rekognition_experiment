@@ -208,7 +208,7 @@ class AmazonRekognitionDetectLabelDynamodbStack(Stack):
         results_table = dynamodb.Table(self, 'detect_label_results',
                        #table_name='detect_label_results',
                        partition_key=dynamodb.Attribute(name='Image', type=dynamodb.AttributeType.STRING),
-                       #sort_key=dynamodb.Attribute(name='Labels', type=dynamodb.AttributeType.STRING),
+                       sort_key=dynamodb.Attribute(name='Label_Name', type=dynamodb.AttributeType.STRING),
                        read_capacity=200,
                        write_capacity=200
         )
@@ -221,7 +221,7 @@ class AmazonRekognitionDetectLabelDynamodbStack(Stack):
                                                code=_lambda.Code.from_asset('./lambda'),
                                                timeout=Duration.seconds(300),
                                                environment={
-                                                   'REKOGNITION_CONFIDENCE': '95',
+                                                   'REKOGNITION_CONFIDENCE': '75',
                                                    'TABLE_NAME': results_table.table_name}
                                                )
         
