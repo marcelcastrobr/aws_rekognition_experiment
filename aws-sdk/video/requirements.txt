@@ -1,0 +1,9 @@
+-e .
+pytest
+boto3
+requests
+pillow
+pytest
+boto3-stubs
+mypy
+

@@ -1,0 +1,236 @@
+Detected labels for mj_1988.jpeg
+
+Label: Microphone
+Confidence: 99.99967956542969
+Instances:
+Parents:
+ Electrical Device
+Aliases:
+ Technology and Computing
+----------
+
+Label: Lighting
+Confidence: 99.99171447753906
+Instances:
+Parents:
+Aliases:
+ Home and Indoors
+----------
+
+Label: Concert
+Confidence: 99.6082992553711
+Instances:
+Parents:
+ Crowd
+ Person
+Aliases:
+ Performing Arts
+----------
+
+Label: Crowd
+Confidence: 99.6082992553711
+Instances:
+Parents:
+ Person
+Aliases:
+ Person Description
+----------
+
+Label: Person
+Confidence: 99.6082992553711
+Instances:
+ Bounding box
+ Top: 0.03111620806157589
+ Left: 0.06396917253732681
+ Width: 0.8625414967536926
+ Height: 0.9647732377052307
+ Confidence: 94.83833312988281
+
+Parents:
+Aliases:
+ Human
+Categories:
+ Person Description
+----------
+
+Label: Coat
+Confidence: 99.34636688232422
+Instances:
+Parents:
+ Clothing
+Aliases:
+ Apparel and Accessories
+----------
+
+Label: Adult
+Confidence: 94.83833312988281
+Instances:
+ Bounding box
+ Top: 0.03111620806157589
+ Left: 0.06396917253732681
+ Width: 0.8625414967536926
+ Height: 0.9647732377052307
+ Confidence: 94.83833312988281
+
+Parents:
+ Person
+Aliases:
+ Person Description
+----------
+
+Label: Male
+Confidence: 94.83833312988281
+Instances:
+ Bounding box
+ Top: 0.03111620806157589
+ Left: 0.06396917253732681
+ Width: 0.8625414967536926
+ Height: 0.9647732377052307
+ Confidence: 94.83833312988281
+
+Parents:
+ Person
+Aliases:
+ Person Description
+----------
+
+Label: Man
+Confidence: 94.83833312988281
+Instances:
+ Bounding box
+ Top: 0.03111620806157589
+ Left: 0.06396917253732681
+ Width: 0.8625414967536926
+ Height: 0.9647732377052307
+ Confidence: 94.83833312988281
+
+Parents:
+ Adult
+ Male
+ Person
+Aliases:
+ Person Description
+----------
+
+Label: Performer
+Confidence: 92.32709503173828
+Instances:
+Parents:
+ Person
+Aliases:
+ Profession
+----------
+
+Label: Solo Performance
+Confidence: 92.32709503173828
+Instances:
+Parents:
+ Performer
+ Person
+Aliases:
+ Performing Arts
+----------
+
+Label: Vest
+Confidence: 83.60488891601562
+Instances:
+Parents:
+ Clothing
+Aliases:
+ Apparel and Accessories
+----------
+
+Label: Jacket
+Confidence: 82.84114837646484
+Instances:
+Parents:
+ Clothing
+ Coat
+Aliases:
+ Apparel and Accessories
+----------
+
+Label: Guitar
+Confidence: 80.40742492675781
+Instances:
+Parents:
+ Musical Instrument
+Aliases:
+ Hobbies and Interests
+----------
+
+Label: Musical Instrument
+Confidence: 80.40742492675781
+Instances:
+Parents:
+Aliases:
+ Hobbies and Interests
+----------
+
+Label: Group Performance
+Confidence: 62.40521240234375
+Instances:
+Parents:
+ Person
+Aliases:
+ Performing Arts
+----------
+
+Label: Musician
+Confidence: 57.62531280517578
+Instances:
+Parents:
+ Leisure Activities
+ Music
+ Musical Instrument
+ Performer
+ Person
+Aliases:
+ Profession
+----------
+
+Label: Portrait
+Confidence: 57.545692443847656
+Instances:
+Parents:
+ Face
+ Head
+ Person
+ Photography
+Aliases:
+ Hobbies and Interests
+----------
+
+Label: Music Band
+Confidence: 57.25440979003906
+Instances:
+Parents:
+ Group Performance
+ Leisure Activities
+ Music
+ Musical Instrument
+ Musician
+ Performer
+ Person
+Aliases:
+ Performing Arts
+----------
+
+Label: Guitarist
+Confidence: 56.2978401184082
+Instances:
+Parents:
+ Guitar
+ Leisure Activities
+ Music
+ Musical Instrument
+ Musician
+ Performer
+ Person
+Aliases:
+ Playing Guitar
+Categories:
+ Profession
+----------
+
+Labels detected: 20
