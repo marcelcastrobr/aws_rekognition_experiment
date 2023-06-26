@@ -29,7 +29,7 @@ def download_files_from_csv(csv_file, s3_bucket):
                 print(f"Failed to download file from URL: {url}")
 
 # Usage example
-csv_file = 'Image_urls_test.csv'
+csv_file = 'Image_urls.csv'
 s3_bucket = 'detectlabels-rekogntion-inboundimagess3bucket406-1i19ijeeaczd0'
 
 download_files_from_csv(csv_file, s3_bucket)
