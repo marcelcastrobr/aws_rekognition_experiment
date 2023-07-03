@@ -22,7 +22,7 @@ def download_files_from_csv(csv_file, s3_bucket):
                 
                 # Upload the file to S3
                 s3.upload_file(file_name, s3_bucket, file_name)
-                print(f'Uploading file: {file_name}')
+                #print(f'Uploading file: {file_name}')
                 
                 # Remove the local file after uploading to S3
                 os.remove(file_name)
