@@ -82,7 +82,13 @@ def detect_labels(bucket_name, file_name):
             labels_dict["Label_Name"] = str(label['Name'])
             labels_dict["Label_Confidence"] = int(label['Confidence'])
             labels_dict["Label_Category"] = str(category['Name'])
-            load_data(labels_dict)
+            if len(label['Aliases']) >= 1:
+                 for alias in label['Aliases']:
+                    labels_dict["Label_Aliases"] = str(alias['Name'])
+                    load_data(labels_dict)
+            else:
+                labels_dict["Label_Aliases"] = ''
+                load_data(labels_dict)
 
     return len(response['Labels'])
 

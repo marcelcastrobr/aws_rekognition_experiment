@@ -171,7 +171,7 @@ class AmazonRekognitionDynamodbStack(Stack):
                        value=write_results_lambda.function_name,
                        description='Write result lambda name')
 
-
+REKOGNITION_CONFIDENCE='50'
 
 
 class AmazonRekognitionDetectLabelDynamodbStack(Stack):
@@ -221,7 +221,7 @@ class AmazonRekognitionDetectLabelDynamodbStack(Stack):
                                                code=_lambda.Code.from_asset('./lambda'),
                                                timeout=Duration.seconds(300),
                                                environment={
-                                                   'REKOGNITION_CONFIDENCE': '75',
+                                                   'REKOGNITION_CONFIDENCE': REKOGNITION_CONFIDENCE,
                                                    'TABLE_NAME': results_table.table_name}
                                                )
         

@@ -8,8 +8,9 @@ from io import BytesIO
 import json
 
 # Environment variables
-TABLE_NAME = 'Images'
-REKOGNITION_CONFIDENCE='75'
+TABLE_NAME = 'Images2'
+REKOGNITION_CONFIDENCE='50'
+MAX_LABELS=49
 
 
 
@@ -91,7 +92,7 @@ def detect_labels(bucket_name, file_name):
     response = client.detect_labels(
         Image={'S3Object': {'Bucket': bucket_name, 
                             'Name': file_name}},
-                            MaxLabels=20
+                            MaxLabels=MAX_LABELS
                             # Uncomment to use image properties and filtration settings
                             #Features=["GENERAL_LABELS", "IMAGE_PROPERTIES"],
                             #Settings={"GeneralLabels": {"LabelInclusionFilters":["Person"]},
@@ -101,29 +102,23 @@ def detect_labels(bucket_name, file_name):
     print('Detected labels for ' + file_name)
     
     image_name = file_name
-    #image_labels = response['Labels']
-
-    #image_json_string = json.dumps(image_labels, indent=4)
-    #labels=set(find_values("Name", image_json_string))
-    #print("Labels found: " + str(labels))
-    #labels_dict = {}
-    #print("Saving label data to database")
-    #labels_dict["Image"] = str(image_name)
-    #labels_dict["Labels"] = str(labels)
-    #print(labels_dict)
-    #load_data(labels_dict)
-    #print("Success!")
-
-
     for label in response['Labels']:
         for category in label['Categories']:
-            labels_dict = {}
-            labels_dict["Image"] = str(image_name)
-            labels_dict["Label_Name"] = str(label['Name'])
-            labels_dict["Label_Confidence"] = int(label['Confidence'])
-            labels_dict["Label_Category"] = str(category['Name'])
-            #print(labels_dict)
-            load_data(labels_dict)
+                labels_dict = {}
+                labels_dict["Image"] = str(image_name)
+                labels_dict["Label_Name"] = str(label['Name'])
+                labels_dict["Label_Confidence"] = int(label['Confidence'])
+                labels_dict["Label_Category"] = str(category['Name'])
+                if len(label['Aliases']) >= 1:
+                    for alias in label['Aliases']:
+                        labels_dict["Label_Aliases"] = str(alias['Name'])
+                        load_data(labels_dict)
+                else:
+                    labels_dict["Label_Aliases"] = ''
+                    load_data(labels_dict)
+
+                #print(labels_dict)
+                #load_data(labels_dict)
 
 
 
@@ -183,7 +178,7 @@ def main():
     photo = sys.argv[1]
     #bucket = sys.argv[2]
     #bucket = 'rov-rekogntion-dev-inboundvideos3bucketb6f542e1-u2putp35h3or'
-    bucket = 'image-rekognition-dev-inboundvideos3bucketb6f542e-1888uj90jetah'
+    bucket = 'detectlabels-rekogntion-inboundimagess3bucket406-1i19ijeeaczd0'
     label_count = detect_labels(bucket, photo)
     print("Labels detected: " + str(label_count))
     
