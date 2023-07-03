@@ -1,0 +1,9 @@
+README.md
+setup.py
+sample_webapp.egg-info/PKG-INFO
+sample_webapp.egg-info/SOURCES.txt
+sample_webapp.egg-info/dependency_links.txt
+sample_webapp.egg-info/top_level.txt
+test/test_rekognition_collections.py
+test/test_rekognition_image_detection.py
+test/test_rekognition_video_detection.py

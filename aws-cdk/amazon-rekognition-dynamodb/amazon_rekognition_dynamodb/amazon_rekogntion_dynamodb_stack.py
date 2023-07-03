@@ -171,9 +171,94 @@ class AmazonRekognitionDynamodbStack(Stack):
                        value=write_results_lambda.function_name,
                        description='Write result lambda name')
 
+REKOGNITION_CONFIDENCE='50'
 
 
+class AmazonRekognitionDetectLabelDynamodbStack(Stack):
 
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        # Create image bucket
+        video_bucket = s3.Bucket(self, 'inbound_images_s3_bucket',
+        #bucket_name='amazonrekogntiondynamodb-inboundimages',
+        block_public_access=s3.BlockPublicAccess(
+            block_public_acls=True,
+            block_public_policy=True,
+            ignore_public_acls=True,
+            restrict_public_buckets=True
+        ))
+
+        # Create role and let rekognition assume it in order to publish .
+        my_role = iam.Role(self, "My_Rekognition_Service_Role",
+            assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
+            description="This is a custom role for rekognition to accces S3"
+            )
+        my_role.add_managed_policy(iam.ManagedPolicy.from_managed_policy_arn(
+            self,
+            'My_managed_policy',
+            'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'))
+        my_role.assume_role_policy.add_statements(iam.PolicyStatement(
+            actions=['sts:AssumeRole'],
+            principals=[iam.ServicePrincipal("rekognition.amazonaws.com")],
+            effect=iam.Effect.ALLOW
+        ))
+
+        #Create a table named Images. The table has a composite primary key consisting of a partition key called Image and a sort key called Labels. The Image key contains the name of the image, while the Labels key stores the labels assigned to that Image.
+        results_table = dynamodb.Table(self, 'detect_label_results',
+                       #table_name='detect_label_results',
+                       partition_key=dynamodb.Attribute(name='Image', type=dynamodb.AttributeType.STRING),
+                       sort_key=dynamodb.Attribute(name='Label_Name', type=dynamodb.AttributeType.STRING),
+                       read_capacity=200,
+                       write_capacity=200
+        )
+
+        # Define the AWS Lambda to write results into DyanamoDB results_table
+        write_results_lambda = _lambda.Function(self, 'write_results_text',
+                                               runtime=_lambda.Runtime.PYTHON_3_7,
+                                               handler='detect_labels.lambda_handler',
+                                               role=my_role,
+                                               code=_lambda.Code.from_asset('./lambda'),
+                                               timeout=Duration.seconds(300),
+                                               environment={
+                                                   'REKOGNITION_CONFIDENCE': REKOGNITION_CONFIDENCE,
+                                                   'TABLE_NAME': results_table.table_name}
+                                               )
+        
+        video_bucket.add_event_notification(event=s3.EventType.OBJECT_CREATED,
+                                            dest=s3n.LambdaDestination(write_results_lambda))
+        
+        # Allow lambda to call Rekognition by adding a IAM Policy Statement
+        write_results_lambda.add_to_role_policy(iam.PolicyStatement(actions=['rekognition:*'],
+                                                                   resources=['*']))
+        
+        # Allow to lambda:GetFunction in order to get the role_arn from within the function
+        write_results_lambda.add_to_role_policy(iam.PolicyStatement(actions=['lambda:GetFunction','iam:PassRole'],
+                                                                   resources=['*']))
+        
+        # Allow lambda to read from S3
+        video_bucket.grant_read(write_results_lambda)
+
+        # Allow Rekognition to read from S3
+        video_bucket.grant_read(iam.ServicePrincipal("rekognition.amazonaws.com"))
+
+
+        # Allow AWS Lambda write_results_lambda to Write to Dynamodb
+        results_table.grant_write_data(write_results_lambda)
+
+        
+        # Output to Amazon S3 Image Bucket
+        cdk.CfnOutput(self, 'cdk_output_bucket',
+                       value=video_bucket.bucket_name,
+                       description='Input Amazon S3 Image Bucket')
+                # Output to DynamoDB table name
+        cdk.CfnOutput(self, 'cdk_output_dynamoDB',
+                       value=results_table.table_name,
+                       description='DynamoDB table name')
+        #Lambda Function name:
+        cdk.CfnOutput(self, 'cdk_output_Lambda',
+                       value=write_results_lambda.function_name,
+                       description='Detect text lambda name')
 
 
 
